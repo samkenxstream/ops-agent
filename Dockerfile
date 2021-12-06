@@ -87,6 +87,18 @@ COPY . /work
 WORKDIR /work
 RUN ./pkg/deb/build.sh
 
+FROM ubuntu:impish AS impish-build
+
+RUN set -x; apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install git systemd \
+    autoconf libtool libcurl4-openssl-dev libltdl-dev libssl-dev libyajl-dev \
+    build-essential cmake bison flex file libsystemd-dev \
+    devscripts cdbs pkg-config golang-go openjdk-11-jdk
+
+COPY . /work
+WORKDIR /work
+RUN ./pkg/deb/build.sh
+
 FROM ubuntu:focal AS focal-build
 
 RUN set -x; apt-get update && \
@@ -224,6 +236,10 @@ COPY --from=stretch-build /google-cloud-ops-agent*.deb /
 FROM scratch AS hirsute
 COPY --from=hirsute-build /tmp/google-cloud-ops-agent.tgz /google-cloud-ops-agent-ubuntu-hirsute.tgz
 COPY --from=hirsute-build /google-cloud-ops-agent*.deb /
+
+FROM scratch AS impish
+COPY --from=impish-build /tmp/google-cloud-ops-agent.tgz /google-cloud-ops-agent-ubuntu-impish.tgz
+COPY --from=impish-build /google-cloud-ops-agent*.deb /
 
 FROM scratch AS focal
 COPY --from=focal-build /tmp/google-cloud-ops-agent.tgz /google-cloud-ops-agent-ubuntu-focal.tgz
