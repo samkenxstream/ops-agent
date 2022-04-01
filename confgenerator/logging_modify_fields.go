@@ -80,6 +80,7 @@ function process(tag, timestamp, record)
 			if *name == "" {
 				continue
 			}
+			fmt.Println("name", *name)
 			m, err := filter.NewMember(*name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse field %q: %w", *name, err)
