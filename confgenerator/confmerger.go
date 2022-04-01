@@ -18,45 +18,33 @@ package confgenerator
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	yaml "github.com/goccy/go-yaml"
 )
 
 // MergeConfFiles merges the user provided config with the built-in config struct for the platform.
 // It will write the merged config file to disk and return the config bytes.
-func MergeConfFiles(userConfPath, confDebugFolder, platform string, builtInConfStructs map[string]*UnifiedConfig) ([]byte, []byte, error) {
-	builtInConfPath := filepath.Join(confDebugFolder, "built-in-config.yaml")
-	mergedConfPath := filepath.Join(confDebugFolder, "merged-config.yaml")
+func MergeConfFiles(userConfPath, platform string, builtInConfStructs map[string]*UnifiedConfig) ([]byte, []byte, error) {
+	mergedConf, err := mergeConfFiles(userConfPath, platform, builtInConfStructs)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// Write the built-in conf to disk for debugging purpose.
 	builtInStruct := builtInConfStructs[platform]
 	builtInYaml, err := yaml.Marshal(builtInStruct)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert the built-in config %q to yaml: %w \n", builtInConfPath, err)
-	}
-
-	if err := writeConfigFile(builtInYaml, builtInConfPath); err != nil {
-		return nil, nil, err
-	}
-
-	mergedConf, err := mergeConfFiles(builtInConfPath, userConfPath, mergedConfPath, platform, builtInConfStructs)
-	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to convert the built-in config for %s to yaml: %w \n", platform, err)
 	}
 
 	mergedConfigYaml, err := yaml.Marshal(mergedConf)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert the merged config %q to yaml: %w \n", mergedConfPath, err)
-	}
-	if err := writeConfigFile(mergedConfigYaml, mergedConfPath); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to convert the merged config %+v to yaml: %w \n", mergedConf, err)
 	}
 
 	return builtInYaml, mergedConfigYaml, nil
 }
 
-func mergeConfFiles(builtInConfPath, userConfPath, mergedConfPath, platform string, builtInConfStructs map[string]*UnifiedConfig) (*UnifiedConfig, error) {
+func mergeConfFiles(userConfPath, platform string, builtInConfStructs map[string]*UnifiedConfig) (*UnifiedConfig, error) {
 	builtInStruct := builtInConfStructs[platform]
 
 	// Read the built-in config file.
